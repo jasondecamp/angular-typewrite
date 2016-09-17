@@ -456,7 +456,7 @@ module.exports = function (grunt) {
     'karma'
   ]);
 
-grunt.registerTask('build', [
+  grunt.registerTask('build', [
     'clean:dist',
     'autoprefixer',
     'babel',

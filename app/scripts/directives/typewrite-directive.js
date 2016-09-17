@@ -1,5 +1,5 @@
 /**
- * AngularJS directive that simulates the effect of typing on a text editor - with a blinking cursor.
+ * AngularJS directive that simulates the effect of typing on a text editor.
  * This directive works as an attribute to any HTML element, and it changes the speed/delay of its animation.
  *
  * There's also a simple less file included for basic styling of the dialog, which can be overridden.
@@ -7,18 +7,17 @@
  *
  *  How to use:
  *
- *  Just add the desired text to the 'text' attribute of the element and the directive takes care of the rest.
- *  The 'text' attribute can be a single string or an array of string. In case an array is passed, the string
+ *  Just add the desired text to the 'typewrite' attribute of the element and the directive takes care of the rest.
+ *  The 'typewrite' value can be a single string or an array of strings. In case an array is passed, the string
  *  on each index is erased so the next item can be printed. When the last index is reached, that string stays
- *  on the screen. (So if you want to erase the last string, just push an empty string to the end of the array)
+ *  on the screen unless you have set the 'loop' option which will continue the animation from the beginning.
+ *  (If you want to erase the last string, just push an empty string to the end of the array)
  *
  * These are the optional preferences:
  *  - initial delay: set an 'initial-delay' attribute for the element
  *  - type delay: set a 'type-delay' attribute for the element
  *  - erase delay: set a 'erase-delay' attribute for the element
- *  - specify cursor : set a 'cursor' attribute for the element, specifying which cursor to use
- *  - turn off cursor blinking: set the 'blink-cursor' attribute  to "false"
- *  - cursor blinking speed: set a 'blink-delay' attribute for the element
+ *  - loop: set a 'loop' attribute for the element
  *  - scope callback: pass the desired scope callback as the 'callback-fn' attribute of the element
  *
  * Note:
@@ -36,9 +35,7 @@ angular
                 initialDelay = $attrs.initialDelay ? getTypeDelay($attrs.initialDelay) : 200,
                 typeDelay = $attrs.typeDelay || 200,
                 eraseDelay = $attrs.eraseDelay || typeDelay / 2,
-                blinkDelay = $attrs.blinkDelay ? getAnimationDelay($attrs.blinkDelay) : false,
-                cursor = $attrs.cursor || '|',
-                blinkCursor = typeof $attrs.blinkCursor !== 'undefined' ? $attrs.blinkCursor === 'true' : true,
+                loop = $attrs.loop,
                 currentText,
                 textArray,
                 running,
@@ -64,7 +61,7 @@ angular
 
             function updateIt(element, charIndex, arrIndex, text) {
                 if (charIndex <= text.length) {
-                    updateValue(element, text.substring(0, charIndex) + cursor);
+                    updateValue(element, text.substring(0, charIndex));
                     charIndex++;
                     timer = $timeout(function () {
                         updateIt(element, charIndex, arrIndex, text);
@@ -81,32 +78,19 @@ angular
                         if ($scope.callbackFn) {
                             $scope.callbackFn();
                         }
-                        blinkIt(element, charIndex, currentText);
+                        if (loop) {
+                          timer = $timeout(function () {
+                              cleanAndRestart(element, charIndex, -1, textArray[arrIndex]);
+                          }, initialDelay);
+                        }
                     }
-                }
-            }
-
-            function blinkIt(element, charIndex) {
-                var text = element.text().substring(0, element.text().length - 1);
-                if (blinkCursor) {
-                    if (blinkDelay) {
-                        auxStyle = '-webkit-animation:blink-it steps(1) ' + blinkDelay + ' infinite;-moz-animation:blink-it steps(1) ' + blinkDelay + ' infinite ' +
-                            '-ms-animation:blink-it steps(1) ' + blinkDelay + ' infinite;-o-animation:blink-it steps(1) ' + blinkDelay + ' infinite; ' +
-                            'animation:blink-it steps(1) ' + blinkDelay + ' infinite;';
-                        updateValue(element, text.substring(0, charIndex) + '<span class="blink" style="' + auxStyle + '">' + cursor + '</span>');
-                    } else {
-                        updateValue(element, text.substring(0, charIndex) + '<span class="blink">' + cursor + '</span>');
-                    }
-                } else {
-                    updateValue(element, text.substring(0, charIndex));
                 }
             }
 
             function cleanAndRestart(element, charIndex, arrIndex, currentText) {
                 if (charIndex > 0) {
                     currentText = currentText.slice(0, -1);
-                    // element.html(currentText.substring(0, currentText.length - 1) + cursor);
-                    updateValue(element, currentText + cursor);
+                    updateValue(element, currentText);
                     charIndex--;
                     timer = $timeout(function () {
                         cleanAndRestart(element, charIndex, arrIndex, currentText);
@@ -160,7 +144,7 @@ angular
             restrict: 'A',
             link: linkFunction,
             scope: {
-                text: '=',
+                text: '=typewrite',
                 callbackFn: '&',
                 start: '='
             }
